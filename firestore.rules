@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: messages
+    // Fields:
+    //   - name: string (required, < 100 chars)
+    //   - email: string (required, email format, < 100 chars)
+    //   - message: string (required, < 5000 chars)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: users
+    // Fields:
+    //   - role: string (required, ['admin', 'user'])
+    //   - email: string (required, email format)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "anisha77suman1980@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'message', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.message is string && data.message.size() > 0 && data.message.size() < 5000 &&
+             data.createdAt is timestamp;
+    }
+
+    // Rules
+    match /messages/{messageId} {
+      allow create: if isValidMessage(request.resource.data);
+      allow read: if isAdmin();
+      allow update, delete: if false; // Messages are immutable
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'user';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

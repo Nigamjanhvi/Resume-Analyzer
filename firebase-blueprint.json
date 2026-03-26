@@ -1,0 +1,22 @@
+{
+  "entities": {
+    "Message": {
+      "title": "Message",
+      "description": "A contact message from a user.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the sender." },
+        "email": { "type": "string", "format": "email", "description": "The email of the sender." },
+        "message": { "type": "string", "description": "The message content." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the message was sent." }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Collection of contact messages."
+    }
+  }
+}
